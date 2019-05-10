@@ -1,3 +1,5 @@
+#'merge_specdf
+#'@export
 merge_specdf <- function(x){
   # For this function to work, all power spectra must be in the same
   # frequency scale

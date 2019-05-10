@@ -1,3 +1,6 @@
+#'Audio summary
+#'@export
+
 audioSummary <- function(dir, output= "csv", fname= "",
                          pngplot= F, ffplot= F, thresh,
                          dfplot= F){

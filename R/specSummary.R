@@ -1,3 +1,5 @@
+#'specSummary
+#'@export
 specSummary <- function(dir, output= "csv", fname= "", pngplot= F, spect= "meanspec"){
   require(tuneR)
   require(seewave)
