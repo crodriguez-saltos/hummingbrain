@@ -23,7 +23,7 @@ dv <- function(sound, ...){
   }
 
   # Get the pulses and pulse intervals with `seewave::timer()`----
-  p.tms <- seewave::timer(sound, msmooth= c(512, 50))
+  p.tms <- seewave::timer(sound, ...)
 
   # Modify output of `seewave::timer()`----
   p.tms <- p.tms[c("s.start", "s.end", "first")]
