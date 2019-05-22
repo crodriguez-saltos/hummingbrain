@@ -3,6 +3,7 @@
 export(audioSummary)
 export(batchBandpass)
 export(dirsfilt)
+export(dv)
 export(exportSpec)
 export(hope_pal)
 export(merge_specdf)
