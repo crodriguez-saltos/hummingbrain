@@ -1,6 +1,7 @@
 #' Ratio of amplitudes of pulses and interpulse intervals
 #'
 #' @param sound Wave object.
+#' @param labels File containing the timestamps of the syllables.
 #' @param ... Further arguments passed to `seewave::timer()`.
 #'
 #' @details This script calculates the ratio of amplitudes of pulses and
@@ -15,18 +16,29 @@
 #' and its preceding pulse.
 #' @export
 
-dv <- function(sound, ...){
+dv <- function(sound, labels= NULL, ...){
   # Convert to mono----
   if (sound@stereo){
     print("Sound is stereo, only the left channel will be used")
     sound <- sound@left
   }
 
-  # Get the pulses and pulse intervals with `seewave::timer()`----
-  p.tms <- seewave::timer(sound, ...)
+  # Import label file, if provided by the user.----
+  if (!is.null(labels)){
+    label.df <- read.table(labels)
+    p.tms <- list(
+      s.start= label.df$V1,
+      s.end= label.df$V2,
+      first= ifelse(label.df$V1[1] > 0, yes = "pause", no = "signal")
+    )
+  }else{
+    # Get the pulses and pulse intervals with `seewave::timer()`----
+    # This function is invoked if no label file has been provided by the user.
+    p.tms <- seewave::timer(sound, ...)
 
-  # Modify output of `seewave::timer()`----
-  p.tms <- p.tms[c("s.start", "s.end", "first")]
+    # Modify output of `seewave::timer()`----
+    p.tms <- p.tms[c("s.start", "s.end", "first")]
+  }
 
   # Give the beginning of the file as the start of the first pulse, if
   # silence is not present at the start. when silence is not present
@@ -50,14 +62,14 @@ dv <- function(sound, ...){
 
   # Obtain rms for the pulses and pulse invervals----
   rms.p <-apply(p.tms$p, 1, function(x){
-    rms <- cutw(wave = sound, from = x["start"], to= x["end"])
-    rms <- rms(rms)
+    rms <- seewave::cutw(wave = sound, from = x["start"], to= x["end"])
+    rms <- seewave::rms(rms)
     return(rms)
   })
 
   rms.ipi <- apply(p.tms$ipi, 1, function(x){
-    rms <- cutw(wave = sound, from = x["start"], to= x["end"])
-    rms <- rms(rms)
+    rms <- seewave::cutw(wave = sound, from = x["start"], to= x["end"])
+    rms <- seewave::rms(rms)
     return(rms)
   })
 

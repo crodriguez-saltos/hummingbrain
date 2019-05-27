@@ -4,10 +4,12 @@
 \alias{dv}
 \title{Ratio of amplitudes of pulses and interpulse intervals}
 \usage{
-dv(sound, ...)
+dv(sound, labels = NULL, ...)
 }
 \arguments{
 \item{sound}{Wave object.}
+
+\item{labels}{File containing the timestamps of the syllables.}
 
 \item{...}{Further arguments passed to `seewave::timer()`.}
 }
