@@ -4,9 +4,6 @@
 #' @param labels File containing the timestamps of the syllables.
 #' @param ... Further arguments passed to `seewave::timer()`.
 #'
-#' @details
-#'
-#' @return
 #' @export
 
 intervals <- function(sound, labels= NULL, ...){
@@ -32,6 +29,7 @@ intervals <- function(sound, labels= NULL, ...){
 
     # Modify output of `seewave::timer()`----
     p.tms <- p.tms[c("s.start", "s.end", "first")]
+    p.tms$label <- rep("s", length(p.tms$s.start))
   }
 
   # Give the beginning of the file as the start of the first pulse, if

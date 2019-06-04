@@ -4,8 +4,8 @@
 \alias{audioSummary}
 \title{Audio summary}
 \usage{
-audioSummary(dir, output = "csv", fname = "", pngplot = F, ffplot = F,
-  thresh, dfplot = F)
+audioSummary(dir, output = "csv", fname = "", pngplot = F,
+  ffplot = F, thresh, dfplot = F)
 }
 \description{
 Audio summary
