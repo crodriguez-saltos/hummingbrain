@@ -167,7 +167,7 @@ audioSummary2020 <- function(sound, threshold, window_length, overlap, plot = F)
   ## Sound as input
   ### Number of elements
   elements <- misound::detect_events(
-    wave= wave,
+    wave= sound,
     msmooth= c(window_length,overlap),
     threshold= threshold
   )
