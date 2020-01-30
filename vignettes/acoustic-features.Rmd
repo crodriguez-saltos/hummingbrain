@@ -1,0 +1,296 @@
+---
+title: "Acoustic features"
+output: 
+  rmarkdown::html_vignette:
+    fig_width: 6
+    fig_height: 6
+    toc: true
+    toc_depth: 4
+vignette: >
+  %\VignetteIndexEntry{using-hummingbrain}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: references.bib
+---
+
+By using a combination of functions from `seewave` and `hummingbrain`, one can extract trajectories of several acoustic features as well as summary statistics for those trajectories. This document shows examples of how to obtain these data. For all the examples, we will work with a mashup of two sounds, orni and tico from `seewave`. Between them, we get good diversity of spectral properties; while orni is a broadband sound, tico is narroband with frequency modulation.
+
+```{r}
+library(seewave)
+data(orni)
+data(tico)
+
+sound <- pastew(orni, tico, output= "Wave")
+spectro(sound, scale= F)
+```
+
+The acoustic measures that we will obtain are slightly modified from those of @barker2008bird.
+
+## Trajectories
+### Sound as input
+The following analyses can be done directly with a Wave object as input
+
+#### Number of elements
+This number can be easily obtained with the following code.
+
+```{r}
+library(misound)
+elements <- detect_events(wave= sound, msmooth= c(512,0), threshold= 5)
+nrow(elements)
+```
+
+#### Duration of song
+Duration of song can be obtained from the `elements` object. It will simply be the end timestamp of the last element minus the start timestamp of the first syllable.
+
+```{r}
+songdur <- elements$end[nrow(elements)] - elements$start[1]
+songdur
+```
+
+#### Dominant frequency
+
+```{r}
+dfreqs <- dfreq(sound, wl = 512, ovlp = 0, threshold = 5)
+```
+
+#### Fundamental frequency
+```{r}
+funds <- fund(sound, wl= 512, ovlp = 0, threshold= 5)
+```
+
+### Spectrogram as input
+For the following analyses we need to first calculate a spectrogram. We will do so with the following code.
+
+```{r spectro-gen}
+library(misound)
+spectrog <- signal_spectro(
+  sound, plot= T, 
+  segment_params = list(
+    wl= 512, ovlp= 0, threshold= 5
+  )
+)
+```
+
+Many of the acoustic features of interest in this section can be obtained by a single function, `specprop` from `seewave`. We will apply this function across all spectral windows of our spectrogram and store it in a data frame, then, in each subsection we will extract the variable of interest from that data frame.
+
+```{r}
+library(plyr)
+specprops <- apply(
+  X = spectrog$amp, 
+  MARGIN = 2, 
+  FUN = function(x){
+    if (!all(is.na(x))){
+      specprop(cbind(spectrog$freq, x))
+    }else{
+      NA
+    }
+  })
+
+# Coalesce numbers into a data frame
+NApos <- sapply(specprops, function(x) all(is.na(x)))
+specpr <- ldply(.data = specprops[!NApos], 
+                   .fun = function(x) as.data.frame(x))
+specpr$pos <- which(!NApos)
+addnas <- matrix(nrow = length(which(NApos)), ncol = ncol(specpr) - 1)
+addnas <- cbind(addnas, which(NApos))
+addnas <- as.data.frame(addnas)
+names(addnas) <- names(specpr)
+specpr <- rbind(specpr, addnas)
+specpr <- specpr[order(specpr$pos),]
+
+rm(addnas, specprops, NApos)
+
+summary(specpr)
+```
+
+#### IQR
+The interquartile range is related to the *energy splitting difference* from @laiolo2003evolution, which was cited by @barker2008bird. That measure is just the average of the IQR calculated at the beginning, middle, and end of the spectrogram. Here, we will obtain the IQR for all spectral windows as a trajectory.
+
+```{r}
+iqrs <- specpr$IQR
+plot(spectrog$time, iqrs)
+```
+
+#### Average frequency
+```{r}
+meanfreqs <- specpr$mean
+plot(spectrog$time, meanfreqs)
+```
+
+#### Minimum and maximum frequency
+Getting the minimum and maximum frequency is tricky. A fast way of doing so is by establishing a signal/noise threshold for the frequency axis of the spectrogram. So far, we have been using 5% of the maximum amplitude as the threshold for the temporal component of the sound. We will test, in a 3D plot of the spectrogram, whether that same value makes sense as a threshold of the frequency component.
+
+```{r}
+library(plotly)
+
+amplitudes <- na.omit(as.numeric(spectrog$amp))
+ampt <- (5 * (max(amplitudes) - min(amplitudes)) / 100) + min(amplitudes)
+
+plot_ly(z= spectrog$amp)%>%
+  add_surface()%>%
+  add_surface(
+    z= matrix(ampt, 
+                 ncol= ncol(spectrog$amp), 
+                 nrow= nrow(spectrog$amp))
+  )
+
+```
+
+As seen above, a treshold of 5% seems to be doing a good job at separating signal from noise in the frequency axis. We will use this threshold to find maximum and minimum frequency.
+
+```{r}
+library(ggplot2)
+library(reshape2)
+signalamp <- spectrog$amp > ampt
+signalamp <- apply(signalamp, 2, function(x){
+  which(x)
+})
+maxfreqs <- sapply(signalamp, function(x){
+  if (length(x) == 0){
+    NA
+  }else{
+    spectrog$freq[max(x)]
+  }
+})
+minfreqs <- sapply(signalamp, function(x){
+  if (length(x) == 0){
+    NA
+  }else{
+    spectrog$freq[min(x)]
+  }
+})
+
+maxmin <- data.frame(
+  time= spectrog$time, 
+  minfreq= minfreqs,
+  maxfreq= maxfreqs
+)
+maxmin <- melt(maxmin, id.vars= "time", variable.name = "limit")
+
+p <- ggplot(data = maxmin, mapping = aes(x= time, y= value, color= limit)) +
+  geom_point()
+print(p)
+```
+
+#### Frequency range
+This is the difference between maximum and minimum frequency.
+
+```{r}
+freqrange <- maxfreqs - minfreqs
+plot(spectrog$time, freqrange)
+```
+
+### Additional metrics
+The following metrics were not in @barker2008bird. They can all be obtained from the data frame generated after using `specpropr`.
+
+#### Entropy
+
+```{r}
+entropies <- specpr$sh
+plot(spectrog$time, entropies)
+```
+
+#### Median
+
+```{r}
+medians <- specpr$median
+plot(spectrog$time, medians)
+```
+
+#### IQ25
+
+```{r}
+iq25 <- specpr$Q25
+plot(spectrog$time, iq25)
+```
+
+#### IQ75
+
+```{r}
+iq75 <- specpr$Q75
+plot(spectrog$time, iq75)
+```
+
+## Summary statistics across entire sound
+### Using trajectories as input
+#### Frequency range
+```{r}
+range(maxmin$value, na.rm= T)
+```
+#### Fundamental frequency
+It does not make sense to calculate a fundamental frequency for the entire sound. A better approach is to get summary statistics of the trajectory of fundamental frequencies.
+
+```{r}
+summary(na.omit(funds[,2]))
+```
+
+### Using mean power spectra as input
+```{r}
+meansp <- meanspec(sound, wl= 512, ovlp = 0)
+```
+
+General properties with `specprop`.
+
+```{r}
+specpr.spec <- specprop(meansp)
+```
+
+#### Dominant frequency
+This is the mode of the power spectra.
+
+```{r}
+specpr.spec$mode
+```
+
+#### IQR
+
+```{r}
+specpr.spec$IQR
+```
+
+#### Average frequency
+
+```{r}
+specpr.spec$mean
+```
+
+#### Median frequency
+
+```{r}
+specpr.spec$median
+```
+
+#### Entropy
+
+```{r}
+specpr.spec$sh
+```
+
+#### Q25
+
+```{r}
+specpr.spec$Q25
+```
+
+#### Q75
+
+```{r}
+specpr.spec$Q75
+```
+
+## Run all analyzes as a bundle
+The function `audioSummary2020`, included in `hummingbrain`, runs all the analyzes from above for any given wave object. We will try it in the next chunk.
+
+```{r}
+library(hummingbrain)
+audio_summary <- audioSummary2020(
+  wave= sound,
+  threshold= 5,
+  window_length = 512, 
+  overlap = 0, 
+  plot= T
+)
+```
+
+
+## References
