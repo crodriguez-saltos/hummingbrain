@@ -1,4 +1,8 @@
 #' Extract acoustic features in batch for multiple files in a directory
+#'
+#' @param inputdir Folder containing wave files.
+#' @param outputdir Folder where to write results.
+#' @param ... Arguments to be passed to `audioSummary2020`.
 #' @export
 
 acousticBatch <- function(inputdir, outputdir, ...){
@@ -15,7 +19,7 @@ acousticBatch <- function(inputdir, outputdir, ...){
       "Processing file", processed, "of", nfiles
     ))
     features <- audioSummary2020(
-      wave= tuneR::readWave(w),
+      sound= tuneR::readWave(w),
       ...
     )
 

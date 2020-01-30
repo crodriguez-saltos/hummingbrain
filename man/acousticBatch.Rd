@@ -6,6 +6,13 @@
 \usage{
 acousticBatch(inputdir, outputdir, ...)
 }
+\arguments{
+\item{inputdir}{Folder containing wave files.}
+
+\item{outputdir}{Folder where to write results.}
+
+\item{...}{Arguments to be passed to `audioSummary2020`.}
+}
 \description{
 Extract acoustic features in batch for multiple files in a directory
 }

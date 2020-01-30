@@ -8,7 +8,7 @@
 #'
 #' @export
 
-audioSummary2020 <- function(wave, threshold, window_length, overlap, plot = F){
+audioSummary2020 <- function(sound, threshold, window_length, overlap, plot = F){
   # Trajectories
   ## Sound as input
   ### Dominant frequency
